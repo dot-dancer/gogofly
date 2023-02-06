@@ -4,6 +4,14 @@ mode:
 server:
   port: 8090
 
+db:
+  dsn: root:root@tcp(127.0.0.1:3306)/gogofly?charset=utf8mb4&parseTime=True&loc=Local
+  maxIdleConn: 10 # 最多空闲连接数
+  maxOpenConn: 10 # 最多打开连接数
+
+redis:
+  url: localhost:6379
+
 log:
   MaxSize: 1      # 日志文件最大的尺寸(M), 超限后开始自动分割
   MaxBackups: 10  # 保留旧文件的最大个数
