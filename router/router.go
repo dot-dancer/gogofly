@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	_ "github.com/dotdancer/gogofly/docs"
+	"github.com/dotdancer/gogofly/global"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	swaggerFiles "github.com/swaggo/files"
@@ -70,9 +71,9 @@ func InitRouter() {
 	// =============================================================================
 	// = 启动一个goroutine来开启web服务, 避免主线程的信号监听被阻塞
 	go func() {
+		global.Logger.Info(fmt.Sprintf("Start Listen: %s", stPort))
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			// TODO: 记录日志
-			fmt.Println(fmt.Sprintf("Start Server Error: %s", err.Error()))
+			global.Logger.Error(fmt.Sprintf("Start Server Error: %s", err.Error()))
 			return
 		}
 	}()
@@ -88,12 +89,11 @@ func InitRouter() {
 	defer cancelShutdown()
 
 	if err := server.Shutdown(ctx); err != nil {
-		// TODO: 记录日志
-		fmt.Println("Stop Server Error: %s", err.Error())
+		global.Logger.Error(fmt.Sprintf("Stop Server Error: %s", err.Error()))
 		return
 	}
 
-	fmt.Println("Stop Server Success")
+	global.Logger.Info("Stop Server Success")
 }
 
 // ! 初始化基础平台相关路由信息
