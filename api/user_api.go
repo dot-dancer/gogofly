@@ -2,7 +2,6 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 type UserApi struct {
@@ -21,7 +20,17 @@ func NewUserApi() UserApi {
 // @Failure 401 {string} string "登录失败"
 // @Router /api/v1/public/user/login [post]
 func (m UserApi) Login(ctx *gin.Context) {
-	ctx.AbortWithStatusJSON(http.StatusOK, gin.H{
-		"msg": "Login Success",
+	//fmt.Println("Login 执行了")
+	//ctx.JSON(http.StatusOK, gin.H{
+	//	"msg": "Login Success",
+	//})
+
+	//OK(ctx, ResponseJson{
+	//	Msg: "Login Success",
+	//})
+
+	Fail(ctx, ResponseJson{
+		Code: 9001,
+		Msg:  "Login Failed",
 	})
 }
