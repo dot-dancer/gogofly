@@ -6,11 +6,14 @@ import (
 	_ "github.com/dotdancer/gogofly/docs"
 	"github.com/dotdancer/gogofly/global"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	"github.com/spf13/viper"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"net/http"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -43,7 +46,10 @@ func InitRouter() {
 	rgAuth := r.Group("/api/v1")
 
 	// 初始基础平台的路由
-	InitBasePlatformRoutes()
+	initBasePlatformRoutes()
+
+	// 注册自定义验证器
+	registCustValidator()
 
 	// 开始注册系统各模块对应的路由信息
 	for _, fnRegistRoute := range gfnRoutes {
@@ -97,6 +103,21 @@ func InitRouter() {
 }
 
 // ! 初始化基础平台相关路由信息
-func InitBasePlatformRoutes() {
+func initBasePlatformRoutes() {
 	InitUserRoutes()
+}
+
+// ! 注册自定义验证器
+func registCustValidator() {
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		_ = v.RegisterValidation("first_is_a", func(fl validator.FieldLevel) bool {
+			if value, ok := fl.Field().Interface().(string); ok {
+				if value != "" && 0 == strings.Index(value, "a") {
+					return true
+				}
+			}
+
+			return false
+		})
+	}
 }
