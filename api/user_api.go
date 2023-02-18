@@ -1,17 +1,21 @@
 package api
 
 import (
+	"github.com/dotdancer/gogofly/service"
 	"github.com/dotdancer/gogofly/service/dto"
+	"github.com/dotdancer/gogofly/utils"
 	"github.com/gin-gonic/gin"
 )
 
 type UserApi struct {
 	BaseApi
+	Service *service.UserService
 }
 
 func NewUserApi() UserApi {
 	return UserApi{
 		BaseApi: NewBaseApi(),
+		Service: service.NewUserService(),
 	}
 }
 
@@ -29,8 +33,21 @@ func (m UserApi) Login(c *gin.Context) {
 		return
 	}
 
+	iUser, err := m.Service.Login(iUserLoginDTO)
+	if err != nil {
+		m.Fail(ResponseJson{
+			Msg: err.Error(),
+		})
+		return
+	}
+
+	token, _ := utils.GenerateToken(iUser.ID, iUser.Name)
+
 	m.OK(ResponseJson{
-		Data: iUserLoginDTO,
+		Data: gin.H{
+			"token": token,
+			"user":  iUser,
+		},
 	})
 
 	//fmt.Println("Login 执行了")
