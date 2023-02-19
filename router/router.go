@@ -105,6 +105,7 @@ func InitRouter() {
 // ! 初始化基础平台相关路由信息
 func initBasePlatformRoutes() {
 	InitUserRoutes()
+	InitHostRoutes()
 }
 
 // ! 注册自定义验证器
