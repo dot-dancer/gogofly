@@ -3,7 +3,6 @@ package router
 import (
 	"github.com/dotdancer/gogofly/api"
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 func InitUserRoutes() {
@@ -22,22 +21,10 @@ func InitUserRoutes() {
 
 		rgAuthUser := rgAuth.Group("user")
 		{
-			rgAuthUser.GET("", func(ctx *gin.Context) {
-				// {data: [{id: 1, name: "zs"}]}
-				ctx.AbortWithStatusJSON(http.StatusOK, gin.H{
-					"data": []map[string]any{
-						{"id": 1, "name": "zs"},
-						{"id": 2, "name": "lisi"},
-					},
-				})
-			})
-
-			rgAuthUser.GET("/:id", func(ctx *gin.Context) {
-				ctx.AbortWithStatusJSON(http.StatusOK, gin.H{
-					"id":   1,
-					"name": "zs",
-				})
-			})
+			rgAuthUser.POST("", userApi.AddUser)
+			rgAuthUser.POST("/list", userApi.GetUserList)
+			rgAuthUser.GET("/:id", userApi.GetUserById)
+			rgAuthUser.PUT("/:id", userApi.UpdateUser)
 		}
 	})
 }

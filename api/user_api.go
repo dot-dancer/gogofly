@@ -7,6 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	ERR_CODE_ADD_USER       = 10011
+	ERR_CODE_GET_USER_BY_ID = 10012
+	ERR_CODE_GET_USER_LIST  = 10013
+	ERR_CODE_UPDATE_USER    = 10014
+)
+
 type UserApi struct {
 	BaseApi
 	Service *service.UserService
@@ -63,4 +70,88 @@ func (m UserApi) Login(c *gin.Context) {
 	//	Code: 9001,
 	//	Msg:  "Login Failed",
 	//})
+}
+
+func (m UserApi) AddUser(c *gin.Context) {
+	var iUserAddDTO dto.UserAddDTO
+	if err := m.BuildRequest(BuildRequestOption{Ctx: c, DTO: &iUserAddDTO}).GetError(); err != nil {
+		return
+	}
+
+	err := m.Service.AddUser(&iUserAddDTO)
+
+	if err != nil {
+		m.ServerFail(ResponseJson{
+			Code: ERR_CODE_ADD_USER,
+			Msg:  err.Error(),
+		})
+
+		return
+	}
+
+	m.OK(ResponseJson{
+		Data: iUserAddDTO,
+	})
+}
+
+func (m UserApi) GetUserById(c *gin.Context) {
+	var iCommonIDDTO dto.CommonIDDTO
+	if err := m.BuildRequest(BuildRequestOption{Ctx: c, DTO: &iCommonIDDTO, BindParamsFromUri: true}).GetError(); err != nil {
+		return
+	}
+
+	iUser, err := m.Service.GetUserById(&iCommonIDDTO)
+	if err != nil {
+		m.ServerFail(ResponseJson{
+			Code: ERR_CODE_GET_USER_BY_ID,
+			Msg:  err.Error(),
+		})
+
+		return
+	}
+
+	m.OK(ResponseJson{
+		Data: iUser,
+	})
+}
+
+func (m UserApi) GetUserList(c *gin.Context) {
+	var iUserListDTO dto.UserListDTO
+	if err := m.BuildRequest(BuildRequestOption{Ctx: c, DTO: &iUserListDTO}).GetError(); err != nil {
+		return
+	}
+
+	giUserList, nTotal, err := m.Service.GetUserList(&iUserListDTO)
+
+	if err != nil {
+		m.ServerFail(ResponseJson{
+			Code: ERR_CODE_GET_USER_LIST,
+			Msg:  err.Error(),
+		})
+		return
+	}
+
+	m.OK(ResponseJson{
+		Data:  giUserList,
+		Total: nTotal,
+	})
+}
+
+func (m UserApi) UpdateUser(c *gin.Context) {
+	var iUserUpdateDTO dto.UserUpdateDTO
+	if err := m.BuildRequest(BuildRequestOption{Ctx: c, DTO: &iUserUpdateDTO}).GetError(); err != nil {
+		return
+	}
+
+	err := m.Service.UpdateUser(&iUserUpdateDTO)
+
+	if err != nil {
+		m.ServerFail(ResponseJson{
+			Code: ERR_CODE_UPDATE_USER,
+			Msg:  err.Error(),
+		})
+		return
+	}
+
+	m.OK(ResponseJson{})
 }
