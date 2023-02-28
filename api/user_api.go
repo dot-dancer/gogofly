@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"github.com/dotdancer/gogofly/service"
 	"github.com/dotdancer/gogofly/service/dto"
 	"github.com/dotdancer/gogofly/utils"
@@ -12,6 +13,7 @@ const (
 	ERR_CODE_GET_USER_BY_ID = 10012
 	ERR_CODE_GET_USER_LIST  = 10013
 	ERR_CODE_UPDATE_USER    = 10014
+	ERR_CODE_DELETE_USER    = 10015
 )
 
 type UserApi struct {
@@ -78,6 +80,11 @@ func (m UserApi) AddUser(c *gin.Context) {
 		return
 	}
 
+	file, _ := c.FormFile("file")
+	stFilePath := fmt.Sprintf("./upload/%s", file.Filename)
+	_ = c.SaveUploadedFile(file, stFilePath)
+	iUserAddDTO.Avatar = stFilePath
+
 	err := m.Service.AddUser(&iUserAddDTO)
 
 	if err != nil {
@@ -96,7 +103,7 @@ func (m UserApi) AddUser(c *gin.Context) {
 
 func (m UserApi) GetUserById(c *gin.Context) {
 	var iCommonIDDTO dto.CommonIDDTO
-	if err := m.BuildRequest(BuildRequestOption{Ctx: c, DTO: &iCommonIDDTO, BindParamsFromUri: true}).GetError(); err != nil {
+	if err := m.BuildRequest(BuildRequestOption{Ctx: c, DTO: &iCommonIDDTO, BindUri: true}).GetError(); err != nil {
 		return
 	}
 
@@ -139,7 +146,14 @@ func (m UserApi) GetUserList(c *gin.Context) {
 
 func (m UserApi) UpdateUser(c *gin.Context) {
 	var iUserUpdateDTO dto.UserUpdateDTO
-	if err := m.BuildRequest(BuildRequestOption{Ctx: c, DTO: &iUserUpdateDTO}).GetError(); err != nil {
+	//strId := c.Param("id")
+	//fmt.Println("strId:" + strId)
+	//
+	//id, _ := strconv.Atoi(strId)
+	//uid := uint(id)
+	//iUserUpdateDTO.ID = uid
+
+	if err := m.BuildRequest(BuildRequestOption{Ctx: c, DTO: &iUserUpdateDTO, BindAll: true}).GetError(); err != nil {
 		return
 	}
 
@@ -148,6 +162,24 @@ func (m UserApi) UpdateUser(c *gin.Context) {
 	if err != nil {
 		m.ServerFail(ResponseJson{
 			Code: ERR_CODE_UPDATE_USER,
+			Msg:  err.Error(),
+		})
+		return
+	}
+
+	m.OK(ResponseJson{})
+}
+
+func (m UserApi) DeleteUserById(c *gin.Context) {
+	var iCommonIDDTO dto.CommonIDDTO
+	if err := m.BuildRequest(BuildRequestOption{Ctx: c, DTO: &iCommonIDDTO, BindUri: true}).GetError(); err != nil {
+		return
+	}
+
+	err := m.Service.DeleteUserById(&iCommonIDDTO)
+	if err != nil {
+		m.ServerFail(ResponseJson{
+			Code: ERR_CODE_DELETE_USER,
 			Msg:  err.Error(),
 		})
 		return

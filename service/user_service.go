@@ -57,3 +57,7 @@ func (m *UserService) UpdateUser(iUserUpdateDTO *dto.UserUpdateDTO) error {
 
 	return m.Dao.UpdateUser(iUserUpdateDTO)
 }
+
+func (m *UserService) DeleteUserById(iCommonIDDTO *dto.CommonIDDTO) error {
+	return m.Dao.DeleteUserById(iCommonIDDTO.ID)
+}
