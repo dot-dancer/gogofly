@@ -1,0 +1,31 @@
+info:
+  contact: {}
+  description: 前端学Golang Web实战开发记录
+  title: Go-Web开发记录
+  version: 0.0.1
+paths:
+  /api/v1/public/user/login:
+    post:
+      description: 用户登录详情描述
+      parameters:
+      - description: 用户名
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: 密码
+        in: formData
+        name: password
+        required: true
+        type: string
+      responses:
+        "200":
+          description: 登录成功
+          schema:
+            type: string
+        "401":
+          description: 登录失败
+          schema:
+            type: string
+      summary: 用户登录
+swagger: "2.0"
