@@ -5,31 +5,23 @@ import (
 	"github.com/dotdancer/gogofly/api"
 	"github.com/dotdancer/gogofly/global"
 	"github.com/dotdancer/gogofly/global/constants"
-	"github.com/dotdancer/gogofly/model"
-	"github.com/dotdancer/gogofly/service"
 	"github.com/dotdancer/gogofly/utils"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const (
-	ERR_CODE_INVALID_TOKEN_INVALID     = 10401
-	ERR_CODE_INVALID_TOKEN_PARSE_ERROR = 10402
-	ERR_CODE_INVALID_TOKEN_NOT_MATCHED = 10403
-	ERR_CODE_INVALID_TOKEN_EXPIRED     = 10404
-	ERR_CODE_INVALID_TOKEN_RENEW_ERROR = 10405
-	TOKEN_NAME                         = "Authorization"
-	TOKEN_PREFIX                       = "Bearer: "
-	RENEW_TOKEN_DURATION               = 10 * 60 * time.Second
+	ERR_CODE_INVALID_TOKEN = 10401
+	TOKEN_NAME             = "Authorization"
+	TOKEN_PREFIX           = "Bearer: "
 )
 
-func tokenErr(c *gin.Context, code int) {
+func tokenErr(c *gin.Context) {
 	api.Fail(c, api.ResponseJson{
 		Status: http.StatusUnauthorized,
-		Code:   code,
+		Code:   ERR_CODE_INVALID_TOKEN,
 		Msg:    "Invalid Token",
 	})
 }
@@ -40,7 +32,7 @@ func Auth() func(c *gin.Context) {
 
 		// Token不存在, 直接返回
 		if token == "" || !strings.HasPrefix(token, TOKEN_PREFIX) {
-			tokenErr(c, ERR_CODE_INVALID_TOKEN_INVALID)
+			tokenErr(c)
 			return
 		}
 
@@ -50,7 +42,7 @@ func Auth() func(c *gin.Context) {
 		nUserId := iJwtCustClaims.ID
 		if err != nil || nUserId == 0 {
 			fmt.Println(err.Error())
-			tokenErr(c, ERR_CODE_INVALID_TOKEN_PARSE_ERROR)
+			tokenErr(c)
 			return
 		}
 
@@ -60,37 +52,16 @@ func Auth() func(c *gin.Context) {
 		// Token与访问者登录对应的token不一致, 直接返回
 		stRedisToken, err := global.RedisClient.Get(stRedisUserIdKey)
 		if err != nil || token != stRedisToken {
-			tokenErr(c, ERR_CODE_INVALID_TOKEN_NOT_MATCHED)
+			tokenErr(c)
 			return
 		}
 
 		// Token已过期, 直接返回
 		nTokenExpireDuration, err := global.RedisClient.GetExpireDuration(stRedisUserIdKey)
 		if err != nil || nTokenExpireDuration <= 0 {
-			tokenErr(c, ERR_CODE_INVALID_TOKEN_EXPIRED)
+			tokenErr(c)
 			return
 		}
 
-		// Token的续期
-		if nTokenExpireDuration.Seconds() < RENEW_TOKEN_DURATION.Seconds() {
-			err := service.SetLoginUserTokenToRedis(nUserId, token)
-			if err != nil {
-				tokenErr(c, ERR_CODE_INVALID_TOKEN_RENEW_ERROR)
-				return
-			}
-		}
-
-		// 将用户信息存入上下文, 方便后续处理继续使用
-		//iUser, err := dao.NewUserDao().GetUserById(nUserId)
-		//if err != nil {
-		//	tokenErr(c)
-		//	return
-		//}
-		//c.Set(constants.LOGIN_USER, iUser)
-		c.Set(constants.LOGIN_USER, model.LoginUser{
-			ID:   nUserId,
-			Name: iJwtCustClaims.Name,
-		})
-		c.Next()
 	}
 }
