@@ -1,11 +1,10 @@
 package api
 
 import (
-	"fmt"
 	"github.com/dotdancer/gogofly/service"
 	"github.com/dotdancer/gogofly/service/dto"
-	"github.com/dotdancer/gogofly/utils"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 const (
@@ -14,6 +13,7 @@ const (
 	ERR_CODE_GET_USER_LIST  = 10013
 	ERR_CODE_UPDATE_USER    = 10014
 	ERR_CODE_DELETE_USER    = 10015
+	ERR_CODE_LOGIN          = 10016
 )
 
 type UserApi struct {
@@ -42,15 +42,19 @@ func (m UserApi) Login(c *gin.Context) {
 		return
 	}
 
-	iUser, err := m.Service.Login(iUserLoginDTO)
+	iUser, token, err := m.Service.Login(iUserLoginDTO)
+	if err == nil {
+		err = service.SetLoginUserTokenToRedis(iUser.ID, token)
+	}
+
 	if err != nil {
 		m.Fail(ResponseJson{
-			Msg: err.Error(),
+			Status: http.StatusUnauthorized,
+			Code:   ERR_CODE_LOGIN,
+			Msg:    err.Error(),
 		})
 		return
 	}
-
-	token, _ := utils.GenerateToken(iUser.ID, iUser.Name)
 
 	m.OK(ResponseJson{
 		Data: gin.H{
@@ -58,20 +62,6 @@ func (m UserApi) Login(c *gin.Context) {
 			"user":  iUser,
 		},
 	})
-
-	//fmt.Println("Login 执行了")
-	//c.JSON(http.StatusOK, gin.H{
-	//	"msg": "Login Success",
-	//})
-
-	//OK(c, ResponseJson{
-	//	Msg: "Login Success",
-	//})
-
-	//Fail(c, ResponseJson{
-	//	Code: 9001,
-	//	Msg:  "Login Failed",
-	//})
 }
 
 func (m UserApi) AddUser(c *gin.Context) {
@@ -80,10 +70,10 @@ func (m UserApi) AddUser(c *gin.Context) {
 		return
 	}
 
-	file, _ := c.FormFile("file")
-	stFilePath := fmt.Sprintf("./upload/%s", file.Filename)
-	_ = c.SaveUploadedFile(file, stFilePath)
-	iUserAddDTO.Avatar = stFilePath
+	//file, _ := c.FormFile("file")
+	//stFilePath := fmt.Sprintf("./upload/%s", file.Filename)
+	//_ = c.SaveUploadedFile(file, stFilePath)
+	//iUserAddDTO.Avatar = stFilePath
 
 	err := m.Service.AddUser(&iUserAddDTO)
 

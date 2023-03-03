@@ -2,9 +2,17 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"github.com/dotdancer/gogofly/dao"
+	"github.com/dotdancer/gogofly/global"
+	"github.com/dotdancer/gogofly/global/constants"
 	"github.com/dotdancer/gogofly/model"
 	"github.com/dotdancer/gogofly/service/dto"
+	"github.com/dotdancer/gogofly/utils"
+	"github.com/spf13/viper"
+	"strconv"
+	"strings"
+	"time"
 )
 
 var userService *UserService
@@ -24,15 +32,26 @@ func NewUserService() *UserService {
 	return userService
 }
 
-func (m *UserService) Login(iUserDTO dto.UserLoginDTO) (model.User, error) {
-	var errResult error
+func SetLoginUserTokenToRedis(uid uint, token string) error {
+	return global.RedisClient.Set(strings.Replace(constants.LOGIN_USER_TOKEN_REDIS_KEY, "{ID}", strconv.Itoa(int(uid)), -1), token, viper.GetDuration("jwt.tokenExpire")*time.Minute)
+}
 
-	iUser := m.Dao.GetUserByNameAndPassword(iUserDTO.Name, iUserDTO.Password)
-	if iUser.ID == 0 {
+func (m *UserService) Login(iUserDTO dto.UserLoginDTO) (model.User, string, error) {
+	var errResult error
+	var token string
+
+	iUser, err := m.Dao.GetUserByName(iUserDTO.Name)
+	// 用户名或密码不正确
+	if err != nil || !utils.CompareHashAndPassword(iUser.Password, iUserDTO.Password) {
 		errResult = errors.New("Invalid UserName Or Password")
+	} else { // 登录成功, 生成token
+		token, err = utils.GenerateToken(iUser.ID, iUser.Name)
+		if err != nil {
+			errResult = errors.New(fmt.Sprintf("Generate Token Error: %s", err.Error()))
+		}
 	}
 
-	return iUser, errResult
+	return iUser, token, errResult
 }
 
 func (m *UserService) AddUser(iUserAddDTO *dto.UserAddDTO) error {

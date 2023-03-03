@@ -13,7 +13,7 @@ redis:
   url: localhost:6379
 
 jwt:
-  tokenExpire: 30        # token有效时长(分钟)
+  tokenExpire: 3        # token有效时长(分钟)
   signingKey: gogofly.cn # 签名使用的Key
 
 ansible:

@@ -47,6 +47,7 @@ func InitRouter() {
 
 	rgPublic := r.Group("/api/v1/public")
 	rgAuth := r.Group("/api/v1")
+	rgAuth.Use(middleware.Auth())
 
 	// 初始基础平台的路由
 	initBasePlatformRoutes()
