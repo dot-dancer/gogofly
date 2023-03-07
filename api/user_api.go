@@ -43,9 +43,6 @@ func (m UserApi) Login(c *gin.Context) {
 	}
 
 	iUser, token, err := m.Service.Login(iUserLoginDTO)
-	if err == nil {
-		err = service.SetLoginUserTokenToRedis(iUser.ID, token)
-	}
 
 	if err != nil {
 		m.Fail(ResponseJson{

@@ -5,17 +5,21 @@ import (
 	"github.com/dotdancer/gogofly/api"
 	"github.com/dotdancer/gogofly/global"
 	"github.com/dotdancer/gogofly/global/constants"
+	"github.com/dotdancer/gogofly/model"
+	"github.com/dotdancer/gogofly/service"
 	"github.com/dotdancer/gogofly/utils"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
 	ERR_CODE_INVALID_TOKEN = 10401
 	TOKEN_NAME             = "Authorization"
 	TOKEN_PREFIX           = "Bearer: "
+	RENEW_TOKEN_DURATION   = 10 * 60 * time.Second
 )
 
 func tokenErr(c *gin.Context) {
@@ -63,5 +67,27 @@ func Auth() func(c *gin.Context) {
 			return
 		}
 
+		// Token的续期
+		if nTokenExpireDuration.Seconds() < RENEW_TOKEN_DURATION.Seconds() {
+			stNewToken, err := service.GenerateAndCacheLoginUserToken(nUserId, iJwtCustClaims.Name)
+			if err != nil {
+				tokenErr(c)
+				return
+			}
+			c.Header("token", stNewToken)
+		}
+
+		//iUser, err := dao.NewUserDao().GetUserById(nUserId)
+		//if err != nil {
+		//	tokenErr(c)
+		//	return
+		//}
+		//c.Set(constants.LOGIN_USER, iUser)
+		c.Set(constants.LOGIN_USER, model.LoginUser{
+			ID:   nUserId,
+			Name: iJwtCustClaims.Name,
+		})
+
+		c.Next()
 	}
 }

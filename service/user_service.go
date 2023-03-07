@@ -32,8 +32,12 @@ func NewUserService() *UserService {
 	return userService
 }
 
-func SetLoginUserTokenToRedis(uid uint, token string) error {
-	return global.RedisClient.Set(strings.Replace(constants.LOGIN_USER_TOKEN_REDIS_KEY, "{ID}", strconv.Itoa(int(uid)), -1), token, viper.GetDuration("jwt.tokenExpire")*time.Minute)
+func GenerateAndCacheLoginUserToken(nUserId uint, stUserName string) (string, error) {
+	token, err := utils.GenerateToken(nUserId, stUserName)
+	if err == nil {
+		err = global.RedisClient.Set(strings.Replace(constants.LOGIN_USER_TOKEN_REDIS_KEY, "{ID}", strconv.Itoa(int(nUserId)), -1), token, viper.GetDuration("jwt.tokenExpire")*time.Minute)
+	}
+	return token, err
 }
 
 func (m *UserService) Login(iUserDTO dto.UserLoginDTO) (model.User, string, error) {
@@ -45,7 +49,7 @@ func (m *UserService) Login(iUserDTO dto.UserLoginDTO) (model.User, string, erro
 	if err != nil || !utils.CompareHashAndPassword(iUser.Password, iUserDTO.Password) {
 		errResult = errors.New("Invalid UserName Or Password")
 	} else { // 登录成功, 生成token
-		token, err = utils.GenerateToken(iUser.ID, iUser.Name)
+		token, err = GenerateAndCacheLoginUserToken(iUser.ID, iUser.Name)
 		if err != nil {
 			errResult = errors.New(fmt.Sprintf("Generate Token Error: %s", err.Error()))
 		}
