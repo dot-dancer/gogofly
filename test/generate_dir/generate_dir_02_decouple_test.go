@@ -42,15 +42,14 @@ func loadJsonDecouple() *DirDesc {
 }
 
 // 根据树状数据返回需要创建对目录路径集合
-func parseDirDesc(data *[]DirDesc, prePath string, result []string) []string {
+func parseDirDesc(data *[]DirDesc, prePath string, result *[]string) {
 	for _, val := range *data {
 		currentPath := strings.Join([]string{prePath, val.Text}, filePathSeparator)
-		result = append(result, currentPath)
+		*result = append(*result, currentPath)
 		if val.Children != nil {
-			return parseDirDesc(val.Children, currentPath, result)
+			parseDirDesc(val.Children, currentPath, result)
 		}
 	}
-	return result
 }
 
 // 根据路径创建对应的可读写目录
@@ -65,6 +64,6 @@ func createDirByPaths(paths []string, baseDir string) {
 func TestGenerateDir(t *testing.T) {
 	jsonContent := loadJsonDecouple()
 	var paths []string
-	paths = parseDirDesc(&[]DirDesc{*jsonContent}, "", paths)
+	parseDirDesc(&[]DirDesc{*jsonContent}, "", &paths)
 	createDirByPaths(paths, workspaceRootDir)
 }
