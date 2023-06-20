@@ -16,16 +16,20 @@ import (
 )
 
 const (
-	ERR_CODE_INVALID_TOKEN = 10401
-	TOKEN_NAME             = "Authorization"
-	TOKEN_PREFIX           = "Bearer: "
-	RENEW_TOKEN_DURATION   = 10 * 60 * time.Second
+	ERR_CODE_INVALID_TOKEN     = 10401                 // Token无效
+	ERR_CODE_TOKEN_PARSE       = 10402                 // 解析Token失败
+	ERR_CODE_TOKEN_NOT_MATCHED = 10403                 // Token访问者登录时Token不一致
+	ERR_CODE_TOKEN_EXPIRED     = 10404                 // Token已过期
+	ERR_CODE_TOKEN_RENEW       = 10405                 // Token续期失败
+	TOKEN_NAME                 = "Authorization"       // Token对应的http请求头字段名称
+	TOKEN_PREFIX               = "Bearer: "            // Token前缀
+	RENEW_TOKEN_DURATION       = 10 * 60 * time.Second // Token需要续期时间节点
 )
 
-func tokenErr(c *gin.Context) {
+func tokenErr(c *gin.Context, code int) {
 	api.Fail(c, api.ResponseJson{
 		Status: http.StatusUnauthorized,
-		Code:   ERR_CODE_INVALID_TOKEN,
+		Code:   code,
 		Msg:    "Invalid Token",
 	})
 }
@@ -36,7 +40,7 @@ func Auth() func(c *gin.Context) {
 
 		// Token不存在, 直接返回
 		if token == "" || !strings.HasPrefix(token, TOKEN_PREFIX) {
-			tokenErr(c)
+			tokenErr(c, ERR_CODE_INVALID_TOKEN)
 			return
 		}
 
@@ -46,7 +50,7 @@ func Auth() func(c *gin.Context) {
 		nUserId := iJwtCustClaims.ID
 		if err != nil || nUserId == 0 {
 			fmt.Println(err.Error())
-			tokenErr(c)
+			tokenErr(c, ERR_CODE_TOKEN_PARSE)
 			return
 		}
 
@@ -56,14 +60,14 @@ func Auth() func(c *gin.Context) {
 		// Token与访问者登录对应的token不一致, 直接返回
 		stRedisToken, err := global.RedisClient.Get(stRedisUserIdKey)
 		if err != nil || token != stRedisToken {
-			tokenErr(c)
+			tokenErr(c, ERR_CODE_TOKEN_NOT_MATCHED)
 			return
 		}
 
 		// Token已过期, 直接返回
 		nTokenExpireDuration, err := global.RedisClient.GetExpireDuration(stRedisUserIdKey)
 		if err != nil || nTokenExpireDuration <= 0 {
-			tokenErr(c)
+			tokenErr(c, ERR_CODE_TOKEN_EXPIRED)
 			return
 		}
 
@@ -71,7 +75,7 @@ func Auth() func(c *gin.Context) {
 		if nTokenExpireDuration.Seconds() < RENEW_TOKEN_DURATION.Seconds() {
 			stNewToken, err := service.GenerateAndCacheLoginUserToken(nUserId, iJwtCustClaims.Name)
 			if err != nil {
-				tokenErr(c)
+				tokenErr(c, ERR_CODE_TOKEN_RENEW)
 				return
 			}
 			c.Header("token", stNewToken)
